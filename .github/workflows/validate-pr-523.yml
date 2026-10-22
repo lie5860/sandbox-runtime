@@ -178,6 +178,8 @@ jobs:
           if ($policy.DisableRootAutoUpdate -ne 1) { Stop-Step 'DisableRootAutoUpdate is not 1.' }
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -229,9 +231,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           $file = 'vendor/srt-win-src/src/acl.rs'
-          $patched = [IO.File]::ReadAllBytes($file)
           try {
-            git show aceba124fd725f4a43d7016ed3f5651d61f83115:$file | Set-Content -Encoding utf8 $file
+            git checkout aceba124fd725f4a43d7016ed3f5651d61f83115 -- $file
             $PSNativeCommandUseErrorActionPreference = $false
             $output = cargo test --release --locked --manifest-path vendor/srt-win-src/Cargo.toml --test acl_parent_scope parent_fdc_is_object_only_and_round_trips -- --exact 2>&1
             $exit = $LASTEXITCODE
@@ -241,7 +242,7 @@ jobs:
             $PSNativeCommandUseErrorActionPreference = $true
             cargo test --release --locked --manifest-path vendor/srt-win-src/Cargo.toml --test acl_parent_scope benchmark_parent_acl_tree_size -- --ignored --exact --nocapture 2>&1 | Tee-Object -FilePath benchmark-main.log
           } finally {
-            [IO.File]::WriteAllBytes($file, $patched)
+            git checkout HEAD -- $file
           }
 
       - name: Build srt-win (Windows)
